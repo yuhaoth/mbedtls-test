@@ -334,8 +334,8 @@ class MbedWindowsTesting(object):
             mingw_clean = subprocess.run(
                 [self.mingw_command, "clean"],
                 env=my_environment,
-                encoding=sys.stdout.encoding,
                 cwd=git_worktree_path,
+                encoding=sys.stdout.encoding,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 check=True
@@ -344,8 +344,8 @@ class MbedWindowsTesting(object):
             mingw_check = subprocess.run(
                 [self.mingw_command, "CC=gcc", "check"],
                 env=my_environment,
-                encoding=sys.stdout.encoding,
                 cwd=git_worktree_path,
+                encoding=sys.stdout.encoding,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 check=True
@@ -368,8 +368,8 @@ class MbedWindowsTesting(object):
         try:
             test_output = subprocess.run(
                 [os.path.join(selftest_dir, self.selftest_exe)],
-                cwd=selftest_dir,
                 input="\n",
+                cwd=selftest_dir,
                 encoding=sys.stdout.encoding,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -396,8 +396,8 @@ class MbedWindowsTesting(object):
         msbuild_test_process = subprocess.Popen(
             ["cmd.exe"],
             env=my_environment,
-            encoding=sys.stdout.encoding,
             cwd=solution_dir,
+            encoding=sys.stdout.encoding,
             stdin=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             stdout=subprocess.PIPE,
@@ -465,8 +465,8 @@ class MbedWindowsTesting(object):
         msbuild_process = subprocess.Popen(
             ["cmd.exe"],
             env=my_environment,
-            encoding=sys.stdout.encoding,
             cwd=solution_dir,
+            encoding=sys.stdout.encoding,
             stdin=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             stdout=subprocess.PIPE,
@@ -506,12 +506,12 @@ class MbedWindowsTesting(object):
         solution_dir = os.path.join(git_worktree_path, "cmake_solution")
         os.makedirs(solution_dir)
         try:
+            generator = "{}{}".format(
+                self.cmake_generators[test_run.vs_version],
+                self.cmake_architecture_flags[test_run.architecture]
+            )
             cmake_output = subprocess.run(
-                ["cmake", "-D", "ENABLE_TESTING=ON", "-G",
-                 "{}{}".format(
-                     self.cmake_generators[test_run.vs_version],
-                     self.cmake_architecture_flags[test_run.architecture]),
-                 ".."],
+                ["cmake", "-D", "ENABLE_TESTING=ON", "-G", generator, ".."],
                 cwd=solution_dir,
                 encoding=sys.stdout.encoding,
                 stdout=subprocess.PIPE,
