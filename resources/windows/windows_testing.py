@@ -322,6 +322,17 @@ class MbedWindowsTesting(object):
         my_environment["WINDOWS"] = "1"
         logger.info("Building mbed TLS using {}".format(self.mingw_command))
         try:
+            cc = "gcc"
+            run_subprocess(
+                [self.mingw_command, "--version"],
+                logger,
+                env=my_environment,
+            )
+            run_subprocess(
+                [cc, "--version"],
+                logger,
+                env=my_environment,
+            )
             run_subprocess(
                 [self.mingw_command, "clean"],
                 logger,
@@ -329,7 +340,7 @@ class MbedWindowsTesting(object):
                 cwd=git_worktree_path
             )
             run_subprocess(
-                [self.mingw_command, "CC=gcc", "check"],
+                [self.mingw_command, "CC=" + cc, "check"],
                 logger,
                 env=my_environment,
                 cwd=git_worktree_path
