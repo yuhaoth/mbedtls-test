@@ -39,7 +39,7 @@ import sys
 import traceback
 
 
-def run_subprocess(cmd, logger, **kwargs):
+def run_subprocess(cmd, logger, success_pattern=None, **kwargs):
     result = subprocess.run(
         cmd,
         encoding=sys.stdout.encoding,
@@ -49,6 +49,10 @@ def run_subprocess(cmd, logger, **kwargs):
         **kwargs
     )
     logger.info(result.stdout)
+    if success_pattern is not None and \
+       not re.search(success_pattern, result.stdout):
+        return False
+    return True
 
 class VStestrun(object):
 
@@ -339,13 +343,14 @@ class MbedWindowsTesting(object):
                 env=my_environment,
                 cwd=git_worktree_path
             )
-            run_subprocess(
+            mingw_passed = run_subprocess(
                 [self.mingw_command, "CC=" + cc, "check"],
                 logger,
+                success_pattern=self.mingw_success_pattern,
                 env=my_environment,
                 cwd=git_worktree_path
             )
-            if re.search(self.mingw_success_pattern, mingw_check.stdout):
+            if mingw_passed:
                 return True
             else:
                 self.set_return_code(1)
@@ -360,13 +365,14 @@ class MbedWindowsTesting(object):
         reports all tests passing."""
         logger.info(selftest_dir)
         try:
-            run_subprocess(
+            test_passed = run_subprocess(
                 [os.path.join(selftest_dir, self.selftest_exe)],
                 logger,
+                success_pattern=self.selftest_success_pattern,
                 input="\n",
                 cwd=selftest_dir
             )
-            if re.search(self.selftest_success_pattern, test_output.stdout):
+            if test_passed:
                 return "Pass"
             else:
                 self.set_return_code(1)
