@@ -39,6 +39,17 @@ import sys
 import traceback
 
 
+def run_subprocess(cmd, logger, **kwargs):
+    result = subprocess.run(
+        cmd,
+        encoding=sys.stdout.encoding,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=True,
+        **kwargs
+    )
+    logger.info(result.stdout)
+
 class VStestrun(object):
 
     def __init__(self, vs_version, configuration, architecture, retargeted):
@@ -194,25 +205,17 @@ class MbedWindowsTesting(object):
         logger.info("Checking out git worktree")
         git_worktree_path = os.path.abspath(tempfile.mkdtemp(dir="worktrees"))
         try:
-            worktree_output = subprocess.run(
+            run_subprocess(
                 [self.git_command, "worktree", "add", "--detach",
                  git_worktree_path, "HEAD"],
-                cwd=self.repository_path,
-                encoding=sys.stdout.encoding,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                check=True
+                logger,
+                cwd=self.repository_path
             )
-            logger.info(worktree_output.stdout)
-            submodule_output = subprocess.run(
+            run_subprocess(
                 [self.git_command, "submodule", "update", "--init"],
-                cwd=git_worktree_path,
-                encoding=sys.stdout.encoding,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                check=True
+                logger,
+                cwd=git_worktree_path
             )
-            logger.info(submodule_output.stdout)
             return git_worktree_path
         except subprocess.CalledProcessError as error:
             self.set_return_code(2)
@@ -222,15 +225,11 @@ class MbedWindowsTesting(object):
     def cleanup_git_worktree(self, git_worktree_path, logger):
         shutil.rmtree(git_worktree_path)
         try:
-            worktree_output = subprocess.run(
+            run_subprocess(
                 [self.git_command, "worktree", "prune"],
-                cwd=self.repository_path,
-                encoding=sys.stdout.encoding,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                check=True
+                logger,
+                cwd=self.repository_path
             )
-            logger.info(worktree_output.stdout)
         except subprocess.CalledProcessError as error:
             self.set_return_code(2)
             logger.error(error.output)
@@ -243,26 +242,18 @@ class MbedWindowsTesting(object):
                 self.config_pl_location
         ))
         try:
-            enable_output = subprocess.run(
+            run_subprocess(
                 [self.perl_command, self.config_pl_location, "full"],
-                cwd=git_worktree_path,
-                encoding=sys.stdout.encoding,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                check=True
+                logger,
+                cwd=git_worktree_path
             )
-            logger.info(enable_output.stdout)
             for option in self.config_to_disable:
-                disable_output = subprocess.run(
+                run_subprocess(
                     [self.perl_command, self.config_pl_location,
                      "unset", option],
-                    cwd=git_worktree_path,
-                    encoding=sys.stdout.encoding,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    check=True
+                    logger,
+                    cwd=git_worktree_path
                 )
-                logger.info(disable_output.stdout)
         except subprocess.CalledProcessError as error:
             self.set_return_code(2)
             logger.error(error.output)
@@ -331,26 +322,18 @@ class MbedWindowsTesting(object):
         my_environment["WINDOWS"] = "1"
         logger.info("Building mbed TLS using {}".format(self.mingw_command))
         try:
-            mingw_clean = subprocess.run(
+            run_subprocess(
                 [self.mingw_command, "clean"],
+                logger,
                 env=my_environment,
-                cwd=git_worktree_path,
-                encoding=sys.stdout.encoding,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                check=True
+                cwd=git_worktree_path
             )
-            logger.info(mingw_clean.stdout)
-            mingw_check = subprocess.run(
+            run_subprocess(
                 [self.mingw_command, "CC=gcc", "check"],
+                logger,
                 env=my_environment,
-                cwd=git_worktree_path,
-                encoding=sys.stdout.encoding,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                check=True
+                cwd=git_worktree_path
             )
-            logger.info(mingw_check.stdout)
             if re.search(self.mingw_success_pattern, mingw_check.stdout):
                 return True
             else:
@@ -366,16 +349,12 @@ class MbedWindowsTesting(object):
         reports all tests passing."""
         logger.info(selftest_dir)
         try:
-            test_output = subprocess.run(
+            run_subprocess(
                 [os.path.join(selftest_dir, self.selftest_exe)],
+                logger,
                 input="\n",
-                cwd=selftest_dir,
-                encoding=sys.stdout.encoding,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                check=True
+                cwd=selftest_dir
             )
-            logger.info(test_output.stdout)
             if re.search(self.selftest_success_pattern, test_output.stdout):
                 return "Pass"
             else:
@@ -510,15 +489,11 @@ class MbedWindowsTesting(object):
                 self.cmake_generators[test_run.vs_version],
                 self.cmake_architecture_flags[test_run.architecture]
             )
-            cmake_output = subprocess.run(
+            run_subprocess(
                 ["cmake", "-D", "ENABLE_TESTING=ON", "-G", generator, ".."],
-                cwd=solution_dir,
-                encoding=sys.stdout.encoding,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                check=True
+                logger,
+                cwd=solution_dir
             )
-            logger.info(cmake_output.stdout)
             return solution_dir
         except subprocess.CalledProcessError as error:
             self.set_return_code(2)
