@@ -603,7 +603,7 @@ def gen_coverity_push_jobs() {
     return jobs
 }
 
-def gen_release_jobs(label_prefix='', run_examples=true) {
+def gen_release_jobs(label_prefix='', run_examples=true, push_coverity=true) {
     def jobs = [:]
 
     common.get_branch_information()
@@ -639,7 +639,7 @@ def gen_release_jobs(label_prefix='', run_examples=true) {
         jobs = jobs + gen_all_example_jobs()
     }
 
-    if (env.PUSH_COVERITY == "true") {
+    if (push_coverity) {
         jobs = jobs + gen_coverity_push_jobs()
     }
 

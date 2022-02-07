@@ -21,7 +21,7 @@ def run_tls_tests(label_prefix='') {
     try {
         def jobs = [:]
 
-        jobs = jobs + gen_jobs.gen_release_jobs(label_prefix, false)
+        jobs = jobs + gen_jobs.gen_release_jobs(label_prefix, false, false)
 
         if (env.RUN_ABI_CHECK == "true") {
             jobs = jobs + gen_jobs.gen_abi_api_checking_job('ubuntu-16.04')
