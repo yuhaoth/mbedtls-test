@@ -250,7 +250,7 @@ done
     )
 }
 
-def send_email(name, failed_builds, coverage_details) {
+def send_email(name, branch, failed_builds, coverage_details) {
     if (failed_builds) {
         keys = failed_builds.keySet()
         failures = keys.join(", ")
@@ -261,7 +261,7 @@ Logs: ${env.BUILD_URL}
 
 Failures: ${failures}
 """
-        subject = "${name} failed!"
+        subject = "${name} failed! (branch: ${branch})"
         recipients = env.TEST_FAIL_EMAIL_ADDRESS
     } else {
         emailbody = """
@@ -269,7 +269,7 @@ ${coverage_details['coverage']}
 
 Logs: ${env.BUILD_URL}
 """
-        subject = "${name} passed!"
+        subject = "${name} passed! (branch: ${branch})"
         recipients = env.TEST_PASS_EMAIL_ADDRESS
     }
     echo subject
@@ -286,7 +286,7 @@ def run_release_jobs(name, jobs, failed_builds, coverage_details) {
         parallel jobs
     } finally {
         if (currentBuild.rawBuild.getCauses()[0].toString().contains('TimerTriggerCause')) {
-            send_email(name, failed_builds, coverage_details)
+            send_email(name, env.MBED_TLS_BRANCH, failed_builds, coverage_details)
         }
     }
 }
