@@ -86,8 +86,6 @@ RUN apt-get update -q && apt-get install -yq \
         make \
         # to build GnuTLS with locally-compiled nettle
         pkg-config \
-        # to install the preferred version of pylint
-        python3-pip \
         # for Mbed TLS tests
         valgrind \
         # for data files generating. xxd is provide by vim
@@ -119,7 +117,7 @@ RUN apt-get update -q && apt-get install -yq \
     rm -rf /var/lib/apt/lists/ && \
     # create symbolic links for earliest gcc and clang versions
     ln -s /usr/bin/gcc-4.7 /usr/local/bin/gcc-earliest && \
-    ln -s /usr/bin/clang-3.5 /usr/local/bin/clang-earliest 
+    ln -s /usr/bin/clang-3.5 /usr/local/bin/clang-earliest
 
 # Install all the parts of gcc-multilib, which is necessary for 32-bit builds.
 # gcc-multilib conflicts with cross-compiler packages that we'll install later,
@@ -278,25 +276,47 @@ RUN wget -q https://github.com/lvc/abi-compliance-checker/archive/2.3.tar.gz && 
 RUN git clone --branch 1.1 https://github.com/lvc/abi-dumper.git && \
     cd abi-dumper && make install prefix=/usr && cd .. && rm -rf abi-dumper
 
-# Install Python pip packages
+# Build Python 3.9 from source package.
 #
-# The pip wrapper scripts can get out of sync with pip due to upgrading it
-# outside the package manager, so invoke the module directly.
+# The minimum python version is 3.6, but 16.04 provide python3.5 only. That does
+# not match our documents. See https://mbed-tls.readthedocs.io/en/latest/getting_started/building/
 #
-# Ubuntu 16.04's pip (8.1) doesn't understand the Requires-Python
-# directive (introduced in pip 9.0), and tries to install the wrong versions
-# of pip and setuptools. Version 21 of pip drops support for Python 3.5 (the
-# latest in 16.04), so pick an earlier version.
-#
-# Piping to cat suppresses the progress bar, but means that a failure
-# won't be caught (`stuff | cat` succeeds if cat succeeds, even if `stuff`
-# fails). The subsequent use of "pip config" (which requires pip >=10)
-# will however fail if the installation of a more recent pip failed.
-RUN python3 -m pip install 'pip<21' --upgrade | cat && \
-    python3 -m pip config set global.progress_bar off && \
-    python3 -m pip install setuptools --upgrade && \
-    true
+# We pick up 3.9 because
+# - Python 3.6 and 3.7 are not in the official supported list.
+# - Python 3.8 will be removed from supported list next year.
+# - Python 3.10 or later depend on openssl 1.1.1 or later which is not default
+#   version of Ubuntu 16.04.
 
+RUN set -ex ; export  DEBIAN_FRONTEND=noninteractive;                           \
+    # Install Python build dependencies
+    apt-get update -q; apt-get upgrade -yq;                                     \
+    apt-get install -yq make build-essential libssl-dev zlib1g-dev libbz2-dev   \
+        libreadline-dev libsqlite3-dev wget curl llvm libncursesw5-dev xz-utils \
+        tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev git uuid-dev   \
+        libgdbm-dev;                                                     \
+    apt-get clean ; rm -rf /var/lib/apt/lists/;                                 \
+    # Download Python 3.9
+    wget -q https://www.python.org/ftp/python/3.9.18/Python-3.9.18.tar.xz;      \
+    tar xvfJ Python-3.9.18.tar.xz; cd Python-3.9.18;                            \
+    # Build and install Python
+    ./configure  --enable-optimizations --with-lto; make -j10 ; make install;   \
+    cd ..; rm -rf Python-3.9.18;        \
+    # Install Python pip packages
+    #
+    # The pip wrapper scripts can get out of sync with pip due to upgrading it
+    # outside the package manager, so invoke the module directly.
+    #
+    # Ubuntu 16.04's pip (8.1) doesn't understand the Requires-Python
+    # directive (introduced in pip 9.0), and tries to install the wrong versions
+    # of pip and setuptools. Version 21 of pip drops support for Python 3.5 (the
+    # latest in 16.04), so pick an earlier version.
+    #
+    # Piping to cat suppresses the progress bar, but means that a failure
+    # won't be caught (`stuff | cat` succeeds if cat succeeds, even if `stuff`
+    # fails). The subsequent use of "pip config" (which requires pip >=10)
+    # will however fail if the installation of a more recent pip failed.
+    python3 -m pip config --global set global.progress_bar off ;                \
+    python3 -m pip install setuptools pip --upgrade
 # Make sure we have a UTF-8 locale
 RUN locale && \
     locale-gen "en_US.UTF-8" && \
