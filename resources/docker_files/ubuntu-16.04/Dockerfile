@@ -286,21 +286,21 @@ RUN git clone --branch 1.1 https://github.com/lvc/abi-dumper.git && \
 # - Python 3.8 will be removed from supported list next year.
 # - Python 3.10 or later depend on openssl 1.1.1 or later which is not default
 #   version of Ubuntu 16.04.
-
+ENV PYTHON_VERSION=3.6.15
 RUN set -ex ; export  DEBIAN_FRONTEND=noninteractive;                           \
     # Install Python build dependencies
     apt-get update -q; apt-get upgrade -yq;                                     \
     apt-get install -yq make build-essential libssl-dev zlib1g-dev libbz2-dev   \
         libreadline-dev libsqlite3-dev wget curl llvm libncursesw5-dev xz-utils \
         tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev git uuid-dev   \
-        libgdbm-dev;                                                     \
+        libgdbm-dev;                                                            \
     apt-get clean ; rm -rf /var/lib/apt/lists/;                                 \
     # Download Python 3.9
-    wget -q https://www.python.org/ftp/python/3.9.18/Python-3.9.18.tar.xz;      \
-    tar xvfJ Python-3.9.18.tar.xz; cd Python-3.9.18;                            \
+    wget -q https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tar.xz;      \
+    tar xvfJ Python-${PYTHON_VERSION}.tar.xz; cd Python-${PYTHON_VERSION};                            \
     # Build and install Python
     ./configure  --enable-optimizations --with-lto; make -j10 ; make install;   \
-    cd ..; rm -rf Python-3.9.18;        \
+    cd ..; rm -rf Python-${PYTHON_VERSION};        \
     # Install Python pip packages
     #
     # The pip wrapper scripts can get out of sync with pip due to upgrading it
@@ -317,6 +317,7 @@ RUN set -ex ; export  DEBIAN_FRONTEND=noninteractive;                           
     # will however fail if the installation of a more recent pip failed.
     python3 -m pip config --global set global.progress_bar off ;                \
     python3 -m pip install setuptools pip --upgrade
+
 # Make sure we have a UTF-8 locale
 RUN locale && \
     locale-gen "en_US.UTF-8" && \
